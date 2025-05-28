@@ -1,5 +1,9 @@
-from common import Choice
+from common import Choice, ClusterScorer, WordEmbedding, Metric
+import json
+import numpy as np
 from abc import ABC, abstractmethod
+
+from utils import create_all_choices_from_words
 
 
 class Player(ABC):
@@ -19,3 +23,30 @@ class HumanPlayer(Player):
 
         choice_index = int(input("Which choice do you chose: ")) - 1
         return choices_list[choice_index]
+
+
+def _load_word_embeddings_dict(file_name: str) -> dict[str, WordEmbedding]:
+    with open(file_name, mode='r') as file:
+        data = json.load(file)
+        word_embeddings = map(WordEmbedding.from_dict, data)
+        return dict(map(lambda word_embedding: (word_embedding.word, word_embedding), word_embeddings))
+
+
+class WordEmbeddingPlayer(Player):
+    choice_scores: dict[Choice, np.floating]
+
+
+    def __init__(self, file_name: str, words: set[str], metric: Metric, scorer: ClusterScorer) -> None:
+        choices = create_all_choices_from_words(words)
+        word_embeddings = _load_word_embeddings_dict(file_name)
+
+        def get_choice_score(choice: Choice):
+            choices_as_word_embeddings = map(lambda word: word_embeddings[word], choice)
+            return scorer(list(choices_as_word_embeddings), metric)
+
+        self.choice_scores = dict(map(lambda choice: (choice, get_choice_score(choice)), choices))
+
+
+    def make_choice(self, choices: set[Choice]) -> Choice:
+        return min(choices, key=lambda choice: self.choice_scores[choice].item())
+

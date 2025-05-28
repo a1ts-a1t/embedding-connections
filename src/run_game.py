@@ -1,0 +1,53 @@
+from typing import Any
+from game import Game
+from metrics import METRICS_MAP, SCORER_MAP, cosine_metric, mean_projective_centroid_distance_scorer
+from player import WordEmbeddingPlayer
+import json
+from argparse import ArgumentParser
+
+
+def provide_args() -> dict:
+    parser = ArgumentParser()
+    parser.add_argument("--metric", default="cosine") # metric
+    parser.add_argument("--scorer", default="mean_projective_centroid_distance") # scorer
+    parser.add_argument("--model", default="all-MiniLM-L6-v2") # model
+    parser.add_argument("--game-data-file", default="./data/game_data.json")
+    parser.add_argument("--output-file-name")
+    return vars(parser.parse_args())
+
+
+def load_game_data(file_name: str):
+    with open(file_name, mode='r') as file:
+        return json.load(file)
+
+
+def dump_results(file_name: str, results: Any):
+    with open(file_name, mode='w') as file:
+        return json.dump(results, file)
+
+
+if __name__ == "__main__":
+    args = provide_args()
+    print(args)
+    metric = METRICS_MAP.get(args['metric'])
+    scorer = SCORER_MAP.get(args['scorer'])
+    
+    if metric is None or scorer is None:
+        raise Exception(f"Invalid metric[{args['metric']}] or scorer[{args['scorer']}]")
+
+    game_data = load_game_data(args['game_data_file'])
+    embedding_file_name = f"./data/{args['model']}.json"
+
+    game_results = []
+    for game_datum in game_data:
+        player = WordEmbeddingPlayer(embedding_file_name, game_datum['words'], metric=metric, scorer=scorer)
+        words = set(game_datum['words'])
+        answer_key = set([frozenset(answer) for answer in game_datum['answer_key']])
+        game = Game(player=player, words=words, answer_key=answer_key)
+        turns_taken = game.play()
+        game_results.append({"words": game_datum['words'], "answer_key": game_datum['answer_key'], "turns_taken": turns_taken})
+
+    results = {"model": args['model'], "metric": args['metric'], "scorer": args['scorer'], "game_results": game_results}
+    output_file_name = f"./data/{args['model']}_{args['metric']}_{args['scorer']}.json" if args.get('output_file_name') is None else args['output_file_name']
+    dump_results(output_file_name, results)
+
