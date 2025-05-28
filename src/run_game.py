@@ -1,6 +1,7 @@
 from typing import Any
+from common import GameDatum
 from game import Game
-from metrics import METRICS_MAP, SCORER_MAP, cosine_metric, mean_projective_centroid_distance_scorer
+from metrics import METRICS_MAP, SCORER_MAP
 from player import WordEmbeddingPlayer
 import json
 from argparse import ArgumentParser
@@ -39,13 +40,14 @@ if __name__ == "__main__":
     embedding_file_name = f"./data/{args['model']}.json"
 
     game_results = []
-    for game_datum in game_data:
-        player = WordEmbeddingPlayer(embedding_file_name, game_datum['words'], metric=metric, scorer=scorer)
-        words = set(game_datum['words'])
-        answer_key = set([frozenset(answer) for answer in game_datum['answer_key']])
-        game = Game(player=player, words=words, answer_key=answer_key)
-        turns_taken = game.play()
-        game_results.append({"words": game_datum['words'], "answer_key": game_datum['answer_key'], "turns_taken": turns_taken})
+    for game_json in game_data:
+        game_datum = GameDatum.from_json(game_json)
+        player = WordEmbeddingPlayer(embedding_file_name, game_datum.words, metric=metric, scorer=scorer)
+        game = Game(player=player, words=game_datum.words, answer_key=game_datum.answer_key)
+        final_game_state = game.play()
+        turns_taken = final_game_state.turns_taken
+        print(f"Model took {turns_taken} turns to complete game {game_datum.id}")
+        game_results.append({"game_id": game_datum.id, "turns_taken": turns_taken})
 
     results = {"model": args['model'], "metric": args['metric'], "scorer": args['scorer'], "game_results": game_results}
     output_file_name = f"./data/{args['model']}_{args['metric']}_{args['scorer']}.json" if args.get('output_file_name') is None else args['output_file_name']

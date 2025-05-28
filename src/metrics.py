@@ -23,22 +23,20 @@ def l2_metric(embedding1: NDArray, embedding2: NDArray) -> float:
     return np.sum(np.square(diff))
 
 
-def mean_centroid_distance_scorer(word_embeddings: list[WordEmbedding], metric: Metric) -> float:
+def mean_centroid_distance_scorer(word_embeddings: list[WordEmbedding], metric: Metric) -> np.floating:
     embeddings = map(lambda word_embedding: np.array(word_embedding.embedding), word_embeddings)
     centroid = np.sum(list(embeddings)) / len(word_embeddings)
     distances = map(lambda embedding: metric(embedding, centroid), embeddings)
-    return np.mean(list(distances)).item()
+    return np.mean(list(distances))
 
 
 # ref: https://skeptric.com/projective-centroid/
-def mean_projective_centroid_distance_scorer(word_embeddings: list[WordEmbedding], metric: Metric):
+def mean_projective_centroid_distance_scorer(word_embeddings: list[WordEmbedding], metric: Metric) -> np.floating:
     normalized_embeddings = list(map(lambda word_embedding: normalize(np.array(word_embedding.embedding)), word_embeddings))
     centroid = normalize(np.sum(normalized_embeddings, axis=0) / len(word_embeddings))
 
     distances = map(lambda embedding: metric(embedding, centroid), normalized_embeddings)
-    distance = np.mean(list(distances))
-    print(f"Mean projective centroid distance between {[word_embedding.word for word_embedding in word_embeddings]}: {distance}")
-    return distance
+    return np.mean(list(distances))
 
 
 METRICS_MAP = { "cosine": cosine_metric, "l2": l2_metric }

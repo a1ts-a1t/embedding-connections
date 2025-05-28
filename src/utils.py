@@ -38,20 +38,19 @@ def get_next_game_state(game_state: GameState, choice: Choice) -> GameState:
 
     # player picked a correct choice
     if intersection_size == 4:
-        print(f"Found answer: {choice}")
         removed_choices = filter(lambda c: get_intersection_size(c, choice) > 0, game_state.choices)
         new_choices = game_state.choices.difference(removed_choices)
         new_answers_remaining = game_state.answers_remaining.difference(set([choice]))
-        return GameState(new_choices, new_answers_remaining, game_state.turns_remaining)
+        return GameState(new_choices, new_answers_remaining, game_state.turns_taken)
 
     # player was one off
     if intersection_size == 3:
         removed_choices = filter(lambda c: get_intersection_size(c, choice) == 2, game_state.choices)
         new_choices = game_state.choices.difference(removed_choices)
         new_choices.remove(choice)
-        return GameState(new_choices, game_state.answers_remaining, game_state.turns_remaining - 1)
+        return GameState(new_choices, game_state.answers_remaining, game_state.turns_taken + 1)
         
     # player was completely off
     new_choices = game_state.choices.difference(set([choice]))
-    return GameState(new_choices, game_state.answers_remaining, game_state.turns_remaining - 1)
+    return GameState(new_choices, game_state.answers_remaining, game_state.turns_taken + 1)
 

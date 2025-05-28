@@ -18,8 +18,6 @@ class Game:
 
         initial_state = create_initial_game_state(words, answer_key)
 
-        print(f"Words: {words}")
-        print(f"Answer key: {answer_key}")
         self.current_state = initial_state
 
 
@@ -28,19 +26,13 @@ class Game:
             return
 
         player_choice = self.player.make_choice(self.current_state.choices)
-        print(f"Player choice: {player_choice}")
         new_state = get_next_game_state(self.current_state, player_choice)
         self.current_state = new_state
 
 
-    def play(self) -> int:
-        turn_count = 0
+    def play(self) -> GameState:
         while not self.current_state.is_terminal():
-            if len(self.current_state.answers_remaining) == 0:
-                break
-
-            turn_count += 1
             self.take_turn()
 
-        return turn_count
+        return self.current_state # return final game state
 

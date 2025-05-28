@@ -10,7 +10,7 @@ curl -L -o ./tmp/game_data.zip $DATASET_URL
 unzip ./tmp/game_data.zip -d ./tmp
 
 # json transforms
-jq '[.[] | { words: [.words[] | ascii_downcase], answer_key: [.answers[] | [.words[] | ascii_downcase]] }]' "./tmp/$DATASET_FILE_NAME" > ./data/game_data.json
+jq '[.[] | { id: .contest, words: [.words[] | ascii_downcase], answer_key: [.answers[] | [.words[] | ascii_downcase]] }]' "./tmp/$DATASET_FILE_NAME" > ./data/game_data.json
 jq "[.[] | .words] | flatten | unique" ./data/game_data.json > ./data/all_words.json
 
 # cleanup
