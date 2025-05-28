@@ -34,9 +34,9 @@ class CentroidDistanceScorer(Scorer):
         self.aggregator = aggregator
 
     def score(self, word_embeddings: list[WordEmbedding]) -> np.floating:
-        embeddings = map(lambda word_embedding: np.array(word_embedding.embedding), word_embeddings)
-        centroid = np.sum(list(embeddings)) / len(word_embeddings)
-        distances = map(lambda embedding: l2_metric(embedding, centroid), embeddings)
+        embeddings = list(map(lambda word_embedding: np.array(word_embedding.embedding), word_embeddings))
+        centroid = np.sum(embeddings, axis=0) / len(word_embeddings)
+        distances = list(map(lambda embedding: l2_metric(embedding, centroid), embeddings))
         return self.aggregator(list(distances))
 
 

@@ -4,7 +4,8 @@ from game import Game
 from scorers import SCORER_MAP
 from player import WordEmbeddingPlayer
 import json
-from argparse import ArgumentParser
+from argparse import ArgumentParser, BooleanOptionalAction
+from tqdm import tqdm
 
 
 def provide_args() -> dict:
@@ -13,6 +14,7 @@ def provide_args() -> dict:
     parser.add_argument("--model", default="all-MiniLM-L6-v2") # model
     parser.add_argument("--game-data-file", default="./data/game_data.json")
     parser.add_argument("--output-file-name")
+    parser.add_argument("--verbose", action=BooleanOptionalAction)
     return vars(parser.parse_args())
 
 
@@ -35,15 +37,19 @@ if __name__ == "__main__":
 
     game_data = load_game_data(args['game_data_file'])
     embedding_file_name = f"./data/{args['model']}.json"
+    verbose = args.get("verbose")
 
     game_results = []
-    for game_json in game_data:
+    for game_json in tqdm(game_data):
         game_datum = GameDatum.from_json(game_json)
         player = WordEmbeddingPlayer(embedding_file_name, game_datum.words, scorer=scorer())
         game = Game(player=player, words=game_datum.words, answer_key=game_datum.answer_key)
         final_game_state = game.play()
         turns_taken = final_game_state.turns_taken
-        print(f"Model took {turns_taken} turns to complete game {game_datum.id}")
+
+        if verbose:
+            print(f"Model took {turns_taken} turns to complete game {game_datum.id}")
+
         game_results.append({"game_id": game_datum.id, "turns_taken": turns_taken})
 
     results = {"model": args['model'], "scorer": args['scorer'], "game_results": game_results}
