@@ -1,6 +1,7 @@
-from common import Choice, GameState
+from common import Choice, GameState, WordEmbedding
 from itertools import chain, combinations
 from collections import Counter
+from collections.abc import Generator
 
 
 def get_intersection_size(choice1: Choice, choice2: Choice) -> int:
@@ -53,4 +54,30 @@ def get_next_game_state(game_state: GameState, choice: Choice) -> GameState:
     # player was completely off
     new_choices = game_state.choices.difference(set([choice]))
     return GameState(new_choices, game_state.answers_remaining, game_state.turns_taken + 1)
+
+
+def generate_clusters(word_embeddings: list[WordEmbedding]) -> Generator[list[list[WordEmbedding]]]:
+    cluster_partitions: list[list[WordEmbedding]] = []
+
+    def place_embedding(idx: int) -> Generator[list[list[WordEmbedding]]]:
+        # we've already placed the last embedding into a cluster
+        # yield a deep copy of the cluster partition
+        if idx == len(word_embeddings):
+            yield list(list(p) for p in cluster_partitions)
+        else:
+            # for every cluster partition, if it doesn't have enough
+            # elements, place the current element into it
+            for cluster_partition in cluster_partitions:
+                if len(cluster_partition) < 4:
+                    cluster_partition.append(word_embeddings[idx])
+                    yield from place_embedding(idx + 1)
+                    cluster_partition.pop()
+
+            # if there are less than four clusters, try creating a new one
+            if len(cluster_partitions) < 4:
+                cluster_partitions.append(list([word_embeddings[idx]]))
+                yield from place_embedding(idx + 1)
+                cluster_partitions.pop()
+
+    yield from place_embedding(0)
 

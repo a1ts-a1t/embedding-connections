@@ -1,9 +1,9 @@
+from abc import ABC, abstractmethod
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
-from numpy.typing import NDArray
 
 
 Choice = frozenset[str]
@@ -47,5 +47,12 @@ class GameDatum:
         return GameDatum(id, words, answer_key)
 
 
-ClusterScorer = Callable[[list[WordEmbedding]], np.floating]
+class Scorer(ABC):
+    def precompute(self, word_embeddings: list[WordEmbedding]) -> None:
+        return
+
+    
+    @abstractmethod
+    def score(self, word_embeddings: list[WordEmbedding]) -> np.floating:
+        pass
 

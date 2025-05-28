@@ -39,7 +39,7 @@ if __name__ == "__main__":
     game_results = []
     for game_json in game_data:
         game_datum = GameDatum.from_json(game_json)
-        player = WordEmbeddingPlayer(embedding_file_name, game_datum.words, scorer=scorer)
+        player = WordEmbeddingPlayer(embedding_file_name, game_datum.words, scorer=scorer())
         game = Game(player=player, words=game_datum.words, answer_key=game_datum.answer_key)
         final_game_state = game.play()
         turns_taken = final_game_state.turns_taken
