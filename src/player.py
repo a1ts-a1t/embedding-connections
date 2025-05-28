@@ -1,5 +1,6 @@
-from common import Choice, ClusterScorer, WordEmbedding, Metric
+from common import Choice, ClusterScorer, WordEmbedding
 import json
+import random
 import numpy as np
 from abc import ABC, abstractmethod
 
@@ -24,6 +25,13 @@ class HumanPlayer(Player):
         choice_index = int(input("Which choice do you chose: ")) - 1
         return choices_list[choice_index]
 
+class RandomPlayer(Player):
+    def __init__(self) -> None:
+        pass
+
+    def make_choice(self, choices: set[Choice]) -> Choice:
+        return random.choice(list(choices))
+
 
 def _load_word_embeddings_dict(file_name: str) -> dict[str, WordEmbedding]:
     with open(file_name, mode='r') as file:
@@ -36,13 +44,13 @@ class WordEmbeddingPlayer(Player):
     choice_scores: dict[Choice, np.floating]
 
 
-    def __init__(self, file_name: str, words: set[str], metric: Metric, scorer: ClusterScorer) -> None:
+    def __init__(self, file_name: str, words: set[str], scorer: ClusterScorer) -> None:
         choices = create_all_choices_from_words(words)
         word_embeddings = _load_word_embeddings_dict(file_name)
 
         def get_choice_score(choice: Choice):
             choices_as_word_embeddings = map(lambda word: word_embeddings[word], choice)
-            return scorer(list(choices_as_word_embeddings), metric)
+            return scorer(list(choices_as_word_embeddings))
 
         self.choice_scores = dict(map(lambda choice: (choice, get_choice_score(choice)), choices))
 

@@ -47,6 +47,5 @@ class GameDatum:
         return GameDatum(id, words, answer_key)
 
 
-Metric = Callable[[NDArray, NDArray], float]
-ClusterScorer = Callable[[list[WordEmbedding], Metric], np.floating]
+ClusterScorer = Callable[[list[WordEmbedding]], np.floating]
 
