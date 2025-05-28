@@ -1,4 +1,5 @@
-from common import Choice, GameState, create_initial_game_state, get_next_game_state
+from common import Choice, GameState
+from utils import create_initial_game_state, get_next_game_state
 from player import Player
 from typing import Set
 
