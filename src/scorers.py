@@ -19,8 +19,12 @@ def normalize(embedding: NDArray) -> NDArray:
     return embedding / embedding_norm
 
 
+def cosine_similarity(embedding1: NDArray, embedding2: NDArray) -> np.floating:
+    return np.dot(embedding1, embedding2) / (norm(embedding1) * norm(embedding2))
+
+
 def cosine_metric(embedding1: NDArray, embedding2: NDArray) -> np.floating:
-    return 1 - np.dot(embedding1, embedding2) / (norm(embedding1) * norm(embedding2))
+    return 1 - cosine_similarity(embedding1, embedding2)
 
 
 def l2_metric(embedding1: NDArray, embedding2: NDArray) -> np.floating:
@@ -86,7 +90,7 @@ class SilhouetteCoefficientScorer(Scorer):
             word1 = combination[0].word
             word2 = combination[1].word
             if word1 == word2:
-                self.pairwise_distance_map[frozenset([word1, word2])] = 0
+                self.pairwise_distance_map[frozenset([word1, word2])] = 0 # type: ignore
                 continue
 
             distance = self.metric(np.array(combination[0].embedding), np.array(combination[1].embedding))
@@ -116,6 +120,48 @@ class SilhouetteCoefficientScorer(Scorer):
         return -np.mean([s(word_embedding) for word_embedding in word_embeddings])
 
 
+# https://arxiv.org/pdf/2412.01621
+class LopezMcDonaldEmamiScorer(Scorer):
+    word_embedding_map: dict[str, NDArray] = {}
+
+    def __init__(self):
+        pass
+
+    def precompute(self, word_embeddings: list[WordEmbedding]) -> None:
+        self.word_embedding_map = dict([(we.word, np.array(we.embedding)) for we in word_embeddings])
+
+    def partition_cluster(self, word_embeddings: list[WordEmbedding]) -> tuple[list[NDArray], list[NDArray]]:
+        cluster_words = set([we.word for we in word_embeddings])
+        cluster_embeddings = []
+        non_cluster_embeddings = []
+
+        for word, embedding in self.word_embedding_map.items():
+            if word in cluster_words:
+                cluster_embeddings.append(embedding)
+            else:
+                non_cluster_embeddings.append(embedding)
+
+        return (cluster_embeddings, non_cluster_embeddings)
+
+    def score(self, word_embeddings: list[WordEmbedding]) -> np.floating:
+        # group similarity score
+        cluster_embeddings, non_cluster_embeddings = self.partition_cluster(word_embeddings)
+        centroid = np.sum(cluster_embeddings, axis=0) / len(word_embeddings)
+        i = -np.sum([l2_metric(embedding, centroid) for embedding in cluster_embeddings])
+
+        pairwise_similarities = [cosine_similarity(pair[0], pair[1]) for pair in combinations(cluster_embeddings, 2)]
+        s = np.min(pairwise_similarities)
+        v = np.mean(pairwise_similarities) / (1 + np.var(pairwise_similarities))
+
+        g = 0.4 * i + 0.3 * s + 0.3 * v
+
+        # penalty score
+        p = np.sum([cosine_similarity(centroid, r) for r in non_cluster_embeddings]) / 12
+
+        return p - g # signs swapped from paper to reward low scores
+
+
+
 SCORER_MAP: dict[str, Callable[[], Scorer]] = {
     "mean_centroid_distance": lambda: CentroidDistanceScorer(np.mean),
     "mean_projective_centroid_distance": lambda: ProjectiveCentroidDistanceScorer(np.mean),
@@ -127,5 +173,6 @@ SCORER_MAP: dict[str, Callable[[], Scorer]] = {
     "mean_pairwise_l2_distance": lambda: PairwiseDistanceScorer(l2_metric, np.mean),
     "cosine_silhouette_coefficient": lambda: SilhouetteCoefficientScorer(cosine_metric),
     "l2_silhouette_coefficient": lambda: SilhouetteCoefficientScorer(l2_metric),
+    "lopez_mcdonald_emami": lambda: LopezMcDonaldEmamiScorer(),
 }
 

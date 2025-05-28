@@ -13,6 +13,7 @@ declare -a SCORERS=(
     "mean_pairwise_l2_distance"
     "cosine_silhouette_coefficient"
     "l2_silhouette_coefficient"
+    "lopez_mcdonald_emami"
 )
 
 if [ -z "$1" ]; then
