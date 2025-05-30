@@ -4,6 +4,10 @@ from collections import Counter
 from collections.abc import Generator
 
 
+def sanitize_model_name(model_name: str) -> str:
+    return model_name.replace('/', '-')
+
+
 def get_intersection_size(choice1: Choice, choice2: Choice) -> int:
     return len(choice1.intersection(choice2))
 

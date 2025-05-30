@@ -6,6 +6,7 @@ from player import WordEmbeddingPlayer
 import json
 from argparse import ArgumentParser, BooleanOptionalAction
 from tqdm import tqdm
+from utils import sanitize_model_name
 
 
 def provide_args() -> dict:
@@ -36,7 +37,7 @@ if __name__ == "__main__":
         raise Exception(f"Invalid scorer[{args['scorer']}]")
 
     game_data = load_game_data(args['game_data_file'])
-    embedding_file_name = f"./data/{args['model']}.json"
+    embedding_file_name = f"./data/{sanitize_model_name(args['model'])}.json"
     verbose = args.get("verbose")
 
     game_results = []
@@ -53,6 +54,6 @@ if __name__ == "__main__":
         game_results.append({"game_id": game_datum.id, "turns_taken": turns_taken})
 
     results = {"model": args['model'], "scorer": args['scorer'], "game_results": game_results}
-    output_file_name = f"./data/results/{args['model']}_{args['scorer']}.json" if args.get('output_file_name') is None else args['output_file_name']
+    output_file_name = f"./data/results/{sanitize_model_name(args['model'])}_{args['scorer']}.json" if args.get('output_file_name') is None else args['output_file_name']
     dump_results(output_file_name, results)
 

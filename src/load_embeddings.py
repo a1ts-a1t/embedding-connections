@@ -4,6 +4,7 @@ from argparse import ArgumentParser
 import json
 
 from common import WordEmbedding
+from utils import sanitize_model_name
 
 
 def provide_args() -> dict:
@@ -29,7 +30,7 @@ if __name__ == "__main__":
     args = provide_args()
     input_file_name = args['input_file_name']
     model_name = args['model']
-    output_file_name = f"./data/{model_name}.json" if args.get('output_file_name') is None else str(args.get('output_file_name'))
+    output_file_name = f"./data/{sanitize_model_name(model_name)}.json" if args.get('output_file_name') is None else str(args.get('output_file_name'))
 
     words = read_words_from_file(input_file_name)
     model = SentenceTransformer(model_name)

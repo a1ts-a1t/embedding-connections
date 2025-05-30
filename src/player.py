@@ -25,6 +25,7 @@ class HumanPlayer(Player):
         choice_index = int(input("Which choice do you chose: ")) - 1
         return choices_list[choice_index]
 
+
 class RandomPlayer(Player):
     def __init__(self) -> None:
         pass
