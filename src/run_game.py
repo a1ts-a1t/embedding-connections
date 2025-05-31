@@ -5,7 +5,7 @@ from scorers import SCORER_MAP
 from player import WordEmbeddingPlayer
 import json
 from argparse import ArgumentParser, BooleanOptionalAction
-from tqdm import tqdm
+from tqdm.contrib.concurrent import process_map
 from utils import sanitize_model_name
 
 
@@ -43,25 +43,24 @@ if __name__ == "__main__":
     if scorer is None:
         raise Exception(f"Invalid scorer[{args['scorer']}]")
 
-    game_data = load_game_data(args['game_data_file'])
+    game_data: list = load_game_data(args['game_data_file'])
     embedding_file_name = f"./data/{sanitize_model_name(args['model'])}.json"
     verbose = args.get("verbose")
     word_embeddings_dict = load_word_embeddings_dict(embedding_file_name)
 
-    game_results = []
-    for game_json in tqdm(game_data):
+    def run(game_json: Any):
         game_datum = GameDatum.from_json(game_json)
         game_word_embeddings = [word_embeddings_dict[word] for word in game_datum.words]
-        player = WordEmbeddingPlayer(game_word_embeddings, scorer=scorer())
+
+        player = WordEmbeddingPlayer(game_word_embeddings, scorer=scorer()) # type: ignore
         game = Game(player=player, words=game_datum.words, answer_key=game_datum.answer_key)
+
         final_game_state = game.play()
         turns_taken = final_game_state.turns_taken
 
-        if verbose:
-            print(f"Model took {turns_taken} turns to complete game {game_datum.id}")
+        return { "game_id": game_datum.id, "turns_taken": turns_taken }
 
-        game_results.append({"game_id": game_datum.id, "turns_taken": turns_taken})
-
+    game_results = process_map(run, game_data)
     results = {"model": args['model'], "scorer": args['scorer'], "game_results": game_results}
     output_file_name = f"./data/results/{sanitize_model_name(args['model'])}_{args['scorer']}.json" if args.get('output_file_name') is None else args['output_file_name']
     dump_results(output_file_name, results)
