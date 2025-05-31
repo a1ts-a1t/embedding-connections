@@ -1,5 +1,5 @@
 from typing import Any
-from common import GameDatum
+from common import GameDatum, WordEmbedding
 from game import Game
 from scorers import SCORER_MAP
 from player import WordEmbeddingPlayer
@@ -29,6 +29,13 @@ def dump_results(file_name: str, results: Any):
         return json.dump(results, file)
 
 
+def load_word_embeddings_dict(file_name: str) -> dict[str, WordEmbedding]:
+    with open(file_name, mode='r') as file:
+        data = json.load(file)
+        word_embeddings = map(WordEmbedding.from_dict, data)
+        return dict(map(lambda word_embedding: (word_embedding.word, word_embedding), word_embeddings))
+
+
 if __name__ == "__main__":
     args = provide_args()
     scorer = SCORER_MAP.get(args['scorer'])
@@ -39,11 +46,13 @@ if __name__ == "__main__":
     game_data = load_game_data(args['game_data_file'])
     embedding_file_name = f"./data/{sanitize_model_name(args['model'])}.json"
     verbose = args.get("verbose")
+    word_embeddings_dict = load_word_embeddings_dict(embedding_file_name)
 
     game_results = []
     for game_json in tqdm(game_data):
         game_datum = GameDatum.from_json(game_json)
-        player = WordEmbeddingPlayer(embedding_file_name, game_datum.words, scorer=scorer())
+        game_word_embeddings = [word_embeddings_dict[word] for word in game_datum.words]
+        player = WordEmbeddingPlayer(game_word_embeddings, scorer=scorer())
         game = Game(player=player, words=game_datum.words, answer_key=game_datum.answer_key)
         final_game_state = game.play()
         turns_taken = final_game_state.turns_taken
