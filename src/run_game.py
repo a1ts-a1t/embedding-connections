@@ -15,7 +15,6 @@ def provide_args() -> dict:
     parser.add_argument("--model", default="all-MiniLM-L6-v2") # model
     parser.add_argument("--game-data-file", default="./data/game_data.json")
     parser.add_argument("--output-file-name")
-    parser.add_argument("--verbose", action=BooleanOptionalAction)
     return vars(parser.parse_args())
 
 
@@ -45,7 +44,6 @@ if __name__ == "__main__":
 
     game_data: list = load_game_data(args['game_data_file'])
     embedding_file_name = f"./data/{sanitize_model_name(args['model'])}.json"
-    verbose = args.get("verbose")
     word_embeddings_dict = load_word_embeddings_dict(embedding_file_name)
 
     def run(game_json: Any):

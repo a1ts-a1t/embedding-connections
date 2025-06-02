@@ -161,6 +161,53 @@ class LopezMcDonaldEmamiScorer(Scorer):
         return p - g # signs swapped from paper to reward low scores
 
 
+class WeightedInterclusterScorer(Scorer):
+    word_embedding_map: dict[str, NDArray] = {}
+    inertia_weight: float
+    pairwise_min_weight: float
+    pairwise_var_weight: float
+
+    def __init__(self, inertia_weight: float, pairwise_min_weight: float, pairwise_var_weight: float):
+        total = inertia_weight + pairwise_min_weight + pairwise_var_weight
+        if np.isclose(total, 0):
+            raise Exception("Weights cannot sum to 0.")
+
+        self.inertia_weight = inertia_weight / total
+        self.pairwise_min_weight = pairwise_min_weight / total
+        self.pairwise_var_weight = pairwise_var_weight / total
+
+    def precompute(self, word_embeddings: list[WordEmbedding]) -> None:
+        self.word_embedding_map = dict([(we.word, np.array(we.embedding)) for we in word_embeddings])
+
+    def partition_cluster(self, word_embeddings: list[WordEmbedding]) -> tuple[list[NDArray], list[NDArray]]:
+        cluster_words = set([we.word for we in word_embeddings])
+        cluster_embeddings = []
+        non_cluster_embeddings = []
+
+        for word, embedding in self.word_embedding_map.items():
+            if word in cluster_words:
+                cluster_embeddings.append(embedding)
+            else:
+                non_cluster_embeddings.append(embedding)
+
+        return (cluster_embeddings, non_cluster_embeddings)
+
+    def score(self, word_embeddings: list[WordEmbedding]) -> np.floating:
+        cluster_embeddings, non_cluster_embeddings = self.partition_cluster(word_embeddings)
+        centroid = np.sum(cluster_embeddings, axis=0) / len(word_embeddings)
+        i = -np.sum([l2_metric(embedding, centroid) for embedding in cluster_embeddings]) # inverse inertia
+
+        pairwise_similarities = [cosine_similarity(pair[0], pair[1]) for pair in combinations(cluster_embeddings, 2)]
+        s = np.min(pairwise_similarities) # min pairwise cosine similarity
+        v = np.mean(pairwise_similarities) / (1 + np.var(pairwise_similarities)) # variance measure of cosine similarity
+
+        g = self.inertia_weight * i + self.pairwise_min_weight * s + self.pairwise_var_weight * v
+
+        p = np.sum([cosine_similarity(centroid, r) for r in non_cluster_embeddings]) / 12
+
+        return p - g
+
+
 
 SCORER_MAP: dict[str, Callable[[], Scorer]] = {
     "mean_centroid_distance": lambda: CentroidDistanceScorer(np.mean),
